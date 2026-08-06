@@ -23,6 +23,7 @@ export 'utils/seed_data.dart';
 export 'utils/app_logger.dart';
 export 'utils/app_theme.dart';
 export 'utils/time_ext.dart';
+export 'utils/session_summary.dart';
 export 'widgets/dev_panel.dart';
 export 'widgets/empty_state.dart';
 export 'widgets/chat_bubble.dart';

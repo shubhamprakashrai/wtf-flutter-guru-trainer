@@ -231,6 +231,74 @@ see the assignment's own "No excuses: if a feature is missing, document why
 + fallback" clause, which this follows even though a fallback wasn't
 ultimately needed (LiveKit signup worked without a card).
 
+### 16. Debugging with AI: live LiveKit credential setup, walked step-by-step over screenshots
+
+**Context:** once the candidate created a LiveKit Cloud project (confirmed:
+no card required at signup, closing the loop on entry #15), getting a
+usable API Key/Secret into `token_server/.env` took several back-and-forth
+screenshot exchanges - the candidate initially copied the *masked* secret
+field (literal bullet characters, not the real value), then found an
+existing key whose secret had already been permanently hidden (LiveKit only
+shows a secret once, at creation), then landed on the wrong settings page
+(Project "General", which surfaces LiveKit's own unrelated hosted
+sandbox-token feature, not the project's API keys). Claude Code read each
+screenshot, corrected course each time (explained *why* the copied value
+wasn't usable, redirected to Settings -> API Keys, then to "Create key"),
+and declined to accept or use the literal secret text until the candidate
+pasted it themselves - consistent with the standing rule of never asking
+for or handling secrets on the user's behalf when a self-service path
+exists, and never fabricating what a hidden field's value might be.
+**Result:** real `LIVEKIT_API_KEY`/`LIVEKIT_API_SECRET`/`LIVEKIT_URL`
+written to `.env`, token server restarted, `/health` confirmed
+`liveKitConfigured: true`, `/token` produced a real JWT.
+
+### 17. Debugging with AI: intermittent `adb reverse` drops during live device testing
+
+**Error:** with real LiveKit credentials wired in, the candidate reported a
+"client exception" trying to join a call. `adb logcat` showed the token
+fetch (`[RTC] fetching token for member_dk`) followed immediately by
+`WebSocketChannelException: SocketException: Connection refused` on
+`localhost:8090` - not a LiveKit-side error at all, but the USB
+`adb reverse tcp:8090 tcp:8090` tunnel silently dying (a known MIUI/Xiaomi
+USB-debugging quirk), taking down both the chat WebSocket and the token
+HTTP call at once since they share the same forwarded port.
+**Fix:** re-applied `adb reverse`, then started a small background
+watchdog (`while true; do adb reverse tcp:8090 tcp:8090; sleep 5; done`) to
+keep re-asserting it for the rest of the session, since it kept dropping.
+**Result:** next attempt succeeded end-to-end - both apps fetched tokens,
+showed camera preview, joined the same LiveKit room, and cleanly ended
+with session logs recorded (3s member-side, 12s trainer-side, per each
+side's own start/end timestamps - see the deterministic-id note in
+ARCHITECTURE.md for why they still landed on the same `SessionLog` row).
+Confirmed live by the candidate ("bhai join hua hai") - the first fully
+verified end-to-end video call of the build.
+
+### 18. Refactor with AI: global error handler + two stretch features
+
+**Intent:** entry #17's successful call surfaced one more thing worth
+fixing even though it wasn't blocking anything: LiveKit's `Room` fires some
+internal events asynchronously after `disconnect()`/`dispose()` (a
+`TimeoutException` inside `Room._onParticipantUpdateEvent`, thrown well
+after "left call" had already logged), which printed as an unhandled
+exception in the console. Added `runZonedGuarded` + `FlutterError.onError`
++ `PlatformDispatcher.instance.onError` in both apps' `main()` so stray
+async errors route through `AppLogger` (visible in the DevPanel) instead of
+surfacing as raw console noise - general hardening, not specific to this
+one exception.
+
+Also picked up two items from the spec's optional/stretch lists while the
+candidate was mid-testing: **export session summary**
+(`shared/lib/utils/session_summary.dart` + a share icon in both apps'
+session-log detail sheet, via `share_plus`) - spec section 3.E's bonus.
+**Dark/light theme toggle** (spec section 15) was evaluated and explicitly
+*not* implemented: nearly every screen uses hardcoded literal colors
+(`Color(0xFFF2F4F7)`, `Color(0xFF1D2939)`, etc.) rather than theme-relative
+ones, so a real dark mode would mean auditing every screen file, not just
+adding a second `ThemeData` - too much risk of regressing an
+already-verified-working app for a stretch item the spec explicitly ranks
+lowest-priority. Documented as a deliberate skip in DECISIONS.md rather
+than shipped half-working.
+
 ---
 
 ## Repo proof

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared/shared.dart';
 
 enum _Filter { all, last7, thisMonth }
@@ -157,14 +158,30 @@ class _LogDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final services = context.read<AppServices>();
+    final member = services.auth.getUser(log.memberId);
+    final trainer = services.auth.getUser(log.trainerId);
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Session Detail', style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Text('Session Detail', style: Theme.of(context).textTheme.headlineMedium)),
+              IconButton(
+                tooltip: 'Share summary',
+                icon: const Icon(Icons.ios_share),
+                onPressed: () => SharePlus.instance.share(ShareParams(
+                  text: sessionSummaryText(log, memberName: member?.name ?? 'Member', trainerName: trainer?.name ?? 'Trainer'),
+                  subject: 'WTF Session Summary',
+                )),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
           _row('Duration', log.durationSec.asDuration),
           _row('Rating', log.rating != null ? '${log.rating} / 5' : 'Not rated'),
           const SizedBox(height: 12),

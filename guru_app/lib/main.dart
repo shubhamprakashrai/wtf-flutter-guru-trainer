@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared/shared.dart';
@@ -6,12 +9,28 @@ import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await StorageService.init();
-  SyncClient.instance.connect();
-  final services = AppServices();
-  services.startListening();
-  runApp(GuruApp(services: services));
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    // LiveKit's Room fires some internal events asynchronously after
+    // disconnect()/dispose() (e.g. a stray participant-update wait timing
+    // out during teardown) - harmless, but log it instead of letting it
+    // surface as a red console error.
+    FlutterError.onError = (details) {
+      AppLogger.instance.log(LogTag.rtc, 'FlutterError: ${details.exceptionAsString()}');
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      AppLogger.instance.log(LogTag.rtc, 'Uncaught: $error');
+      return true;
+    };
+
+    await StorageService.init();
+    SyncClient.instance.connect();
+    final services = AppServices();
+    services.startListening();
+    runApp(GuruApp(services: services));
+  }, (error, stack) {
+    AppLogger.instance.log(LogTag.rtc, 'Uncaught (zone): $error');
+  });
 }
 
 class GuruApp extends StatelessWidget {

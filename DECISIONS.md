@@ -103,5 +103,18 @@ scheduling, session logs, UI) has no RTC-vendor awareness at all.
   synchronously before the relay send, so they survive an app restart, but
   there's no retry/backoff if the relay is down when a message is sent -
   it simply won't reach the other app until both are online again.
-- **Light/Dark theme toggle** - single light theme per app (spec's fixed
-  brand colors), no toggle.
+- **Light/Dark theme toggle** - evaluated, not implemented. Nearly every
+  screen uses hardcoded literal colors (`Color(0xFFF2F4F7)`,
+  `Color(0xFF1D2939)`, etc.) rather than theme-relative ones, so a real dark
+  mode means auditing every screen file, not just adding a second
+  `ThemeData`. Chose not to risk regressing an already-verified-working app
+  (see AI_LEDGER.md entry #17 - a live call had just been confirmed
+  end-to-end on a physical device) for the spec's explicitly
+  lowest-priority stretch item.
+
+## Implemented from the optional/bonus lists
+
+- **Export session summary** (spec section 3.E bonus) - a share icon on
+  the session-log detail sheet in both apps, using `share_plus` to hand a
+  plain-text summary (`shared/lib/utils/session_summary.dart`) to the
+  OS share sheet.
