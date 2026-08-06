@@ -156,6 +156,26 @@ an explicit "what's assumed about your 100ms dashboard template" fallback
 note for the self-signed-token approach, since that can't be verified
 without live 100ms credentials.
 
+### 13. Debugging with AI: real-device run exposed an emulator-only assumption
+
+**Error:** after pushing to GitHub, testing moved from an Android emulator to
+a physical Android phone connected over USB (the emulator's AVD had run out
+of `/data` storage - `INSTALL_FAILED_INSUFFICIENT_STORAGE` - mid-session and
+a wipe/cold-boot didn't come back up in time, so the candidate said "run it
+on the physical device instead"). `guru_app` built and installed fine, but
+`SyncClient`/`HmsConfig` hard-coded the `10.0.2.2` alias for all Android
+targets - which only resolves inside the emulator's virtual router, not on
+real hardware, so the WebSocket relay would have silently never connected
+on-device.
+**Fix:** both classes now always dial plain `localhost`; the physical
+device reaches it via `adb reverse tcp:8090 tcp:8090` (documented in
+README's setup steps), which also works for emulators, so one code path
+covers both. Verified live: `guru_app` and `trainer_app` installed and run
+*simultaneously* on the same physical phone (Android 15, package names
+`com.wtf.guru_app` / `com.wtf.trainer_app` don't collide), both logging
+`[CHAT] sync connected to localhost:8090` with no crashes in `adb logcat`
+output streamed through `flutter run`.
+
 ---
 
 ## Repo proof
