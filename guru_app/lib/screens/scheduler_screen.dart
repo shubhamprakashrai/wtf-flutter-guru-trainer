@@ -56,7 +56,10 @@ class _SchedulerViewState extends State<_SchedulerView> with SingleTickerProvide
   List<DateTime> get _slotsForSelectedDay {
     final slots = <DateTime>[];
     var t = DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day, 9, 0);
-    final end = DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day, 20, 30);
+    // Inclusive of the 8:30 PM slot itself - a plain `end = 20:30` with
+    // `isBefore` would exclude the boundary and silently drop the last
+    // advertised slot of the day.
+    final end = DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day, 21, 0);
     while (t.isBefore(end)) {
       slots.add(t);
       t = t.add(const Duration(minutes: 30));
