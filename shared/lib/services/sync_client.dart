@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -9,16 +8,14 @@ import '../utils/app_logger.dart';
 /// Local-first realtime relay. Both apps connect to the same tiny WebSocket
 /// server (see token_server/server.js) running on the dev machine so chat
 /// messages and call-request updates propagate between the two apps without
-/// any cloud backend. Android emulators can't reach the host's "localhost",
-/// hence the 10.0.2.2 alias; iOS simulator/desktop use localhost directly.
+/// any cloud backend. See HmsConfig for why every platform just uses
+/// "localhost" (Android needs `adb reverse tcp:8090 tcp:8090` for this to
+/// resolve, whether it's an emulator or a physical device).
 class SyncClient {
   SyncClient._();
   static final SyncClient instance = SyncClient._();
 
-  static String get defaultHost {
-    if (!Platform.isAndroid) return 'localhost';
-    return '10.0.2.2';
-  }
+  static const defaultHost = 'localhost';
 
   WebSocketChannel? _channel;
   final _controller = StreamController<Map<String, dynamic>>.broadcast();

@@ -28,9 +28,16 @@ cp .env.example .env
 npm start
 ```
 
-Leave this running. It serves on `http://localhost:8090` — both apps talk to
-it (Android emulators reach it via `10.0.2.2:8090` automatically, see
-`shared/lib/services/hms_config.dart`).
+Leave this running. It serves on `http://localhost:8090` — every app build
+talks to it as plain `localhost`. For an **Android emulator** that just
+works. For a **physical Android device** over USB, forward the port first:
+
+```bash
+adb reverse tcp:8090 tcp:8090
+# repeat with -s <device-id> if you have more than one device attached
+```
+
+(see `shared/lib/services/hms_config.dart` / `sync_client.dart`.)
 
 > **No 100ms account yet?** Chat, scheduling, onboarding and session logs all
 > work without it. `/token` will return a clear error until `.env` is filled
