@@ -20,7 +20,7 @@ class PreJoinScreen extends StatefulWidget {
 }
 
 class _PreJoinScreenState extends State<PreJoinScreen> {
-  late final HmsCallManager _manager;
+  late HmsCallManager _manager;
   bool _ready = false;
   String? _error;
   String? _authToken;
@@ -29,6 +29,17 @@ class _PreJoinScreenState extends State<PreJoinScreen> {
   void initState() {
     super.initState();
     _manager = HmsCallManager()..addListener(_onChange);
+    _setup();
+  }
+
+  Future<void> _retry() async {
+    _manager.removeListener(_onChange);
+    await _manager.teardown();
+    setState(() {
+      _error = null;
+      _ready = false;
+      _manager = HmsCallManager()..addListener(_onChange);
+    });
     _setup();
   }
 
@@ -52,14 +63,22 @@ class _PreJoinScreenState extends State<PreJoinScreen> {
   }
 
   void _onChange() => setState(() {});
+  bool _ownershipTransferred = false;
 
   @override
   void dispose() {
     _manager.removeListener(_onChange);
+    // InCallScreen takes over the manager's lifecycle once we've joined; if
+    // the user backs out of the device-check screen instead, release the
+    // camera/mic here so preview doesn't keep running in the background.
+    if (!_ownershipTransferred) {
+      _manager.teardown();
+    }
     super.dispose();
   }
 
   void _join() {
+    _ownershipTransferred = true;
     final me = context.read<AuthCubit>().state.user!;
     Navigator.of(context).pushReplacement(MaterialPageRoute(
       builder: (_) => InCallScreen(
@@ -102,7 +121,20 @@ class _PreJoinScreenState extends State<PreJoinScreen> {
                         ? Center(
                             child: Padding(
                               padding: const EdgeInsets.all(24),
-                              child: Text(_error!, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.error_outline, color: Colors.white38, size: 36),
+                                  const SizedBox(height: 12),
+                                  Text(_error!, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
+                                  const SizedBox(height: 16),
+                                  OutlinedButton(
+                                    onPressed: _retry,
+                                    style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white38)),
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
                             ),
                           )
                         : !_ready || _manager.previewVideoTrack == null
