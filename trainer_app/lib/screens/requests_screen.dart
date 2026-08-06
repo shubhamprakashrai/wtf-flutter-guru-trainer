@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared/shared.dart';
 
+import 'call/pre_join_screen.dart';
+
 class RequestsScreen extends StatelessWidget {
   const RequestsScreen({super.key});
 
@@ -135,6 +137,18 @@ class _RequestsView extends StatelessWidget {
                         ],
                       ),
                     ],
+                    if (_isJoinable(r)) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _joinCall(context, r),
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF12B76A)),
+                          icon: const Icon(Icons.videocam, size: 18),
+                          label: const Text('Join Call'),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               );
@@ -143,6 +157,19 @@ class _RequestsView extends StatelessWidget {
         },
       ),
     );
+  }
+
+  bool _isJoinable(CallRequest r) {
+    if (r.status != CallRequestStatus.approved) return false;
+    return DateTime.now().isAfter(r.scheduledFor.subtract(const Duration(minutes: 10)));
+  }
+
+  void _joinCall(BuildContext context, CallRequest r) {
+    final room = context.read<CallCubit>().roomFor(r.id);
+    if (room == null) return;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => PreJoinScreen(room: room, sessionMemberId: r.memberId, sessionTrainerId: r.trainerId),
+    ));
   }
 
   String _formatDateTime(DateTime dt) {

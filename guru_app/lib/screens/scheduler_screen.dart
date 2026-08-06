@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared/shared.dart';
 
+import 'call/pre_join_screen.dart';
+
 class SchedulerScreen extends StatelessWidget {
   const SchedulerScreen({super.key});
 
@@ -214,6 +216,18 @@ class _SchedulerViewState extends State<_SchedulerView> with SingleTickerProvide
                   ],
                   const SizedBox(height: 6),
                   Text(_statusCopy(r), style: const TextStyle(fontSize: 12, color: Color(0xFF98A2B3))),
+                  if (_isJoinable(r)) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _joinCall(context, r),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF12B76A)),
+                        icon: const Icon(Icons.videocam, size: 18),
+                        label: const Text('Join Call'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -221,6 +235,19 @@ class _SchedulerViewState extends State<_SchedulerView> with SingleTickerProvide
         );
       },
     );
+  }
+
+  bool _isJoinable(CallRequest r) {
+    if (r.status != CallRequestStatus.approved) return false;
+    return DateTime.now().isAfter(r.scheduledFor.subtract(const Duration(minutes: 10)));
+  }
+
+  void _joinCall(BuildContext context, CallRequest r) {
+    final room = context.read<CallCubit>().roomFor(r.id);
+    if (room == null) return;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => PreJoinScreen(room: room, sessionMemberId: r.memberId, sessionTrainerId: r.trainerId),
+    ));
   }
 
   String _statusCopy(CallRequest r) {
