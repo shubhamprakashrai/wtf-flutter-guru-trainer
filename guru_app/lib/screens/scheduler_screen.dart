@@ -86,12 +86,7 @@ class _SchedulerViewState extends State<_SchedulerView> with SingleTickerProvide
   }
 
   void _showSnack(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      backgroundColor: isError ? const Color(0xFFD92D20) : const Color(0xFF12B76A),
-      behavior: SnackBarBehavior.floating,
-      action: isError ? SnackBarAction(label: 'Copy error', textColor: Colors.white, onPressed: () {}) : null,
-    ));
+    showAppSnackBar(context, message: message, isError: isError);
   }
 
   @override
