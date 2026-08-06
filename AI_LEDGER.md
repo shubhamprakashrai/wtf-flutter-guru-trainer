@@ -176,6 +176,61 @@ covers both. Verified live: `guru_app` and `trainer_app` installed and run
 `[CHAT] sync connected to localhost:8090` with no crashes in `adb logcat`
 output streamed through `flutter run`.
 
+### 14. Prompt: "koi aur functionality baccha hai toh kar do" (finish anything left) - spec re-audit
+
+**Intent:** rather than declare done, Claude Code re-read spec section 4
+("States: loading skeletons, empty, error with retry CTA") and section D
+("Join Call button... in Upcoming Calls list and in Chat toolbar") against
+the actual code and found two real gaps: (1) the pre-join device-check
+screen's error state was static text with no way to recover without
+force-closing the app, and a related resource leak where backing out of
+that screen without joining never released the camera/mic preview; (2) the
+Join Call button only existed in the chat toolbar, not in the requests/
+upcoming-calls list the spec explicitly also asks for it in.
+**Fix:** added a Retry button + manager-recreation-on-retry to
+`pre_join_screen.dart` in both apps, added ownership-tracked teardown on
+back-navigation, and added the same joinable-window check + Join Call
+button to `guru_app`'s My Requests tab and `trainer_app`'s Requests inbox.
+
+### 15. Correction: 100ms → LiveKit RTC vendor swap (interviewer + HR approved)
+
+**Tool:** Claude Code **Intent:** the candidate reported that every 100ms
+signup attempt asked for card details before a project/App Access Key
+could be issued - not a paid-tier gate, blocking account creation itself.
+Claude Code first asked whether this was a full dashboard-signup blocker or
+a specific paid feature, since the fix differs; candidate confirmed with
+the interviewer and HR that swapping the RTC vendor was acceptable given
+the constraint, and to proceed. Presented three free, no-card alternatives
+compatible with the existing token-server/CallManager architecture
+(LiveKit, ZegoCloud, Jitsi Meet) with the trade-off of each; candidate
+picked LiveKit for its close architectural match to what was already built.
+**Research:** read `livekit_client-2.10.0`'s source directly from
+`~/.pub-cache` (same doc-free approach as entry #5) - `Room`/`Participant`
+class hierarchy, `connect()`/`FastConnectOptions`, `LocalVideoTrack
+.createCameraTrack()` for pre-join preview, `VideoTrackRenderer` widget,
+`ConnectionState` enum, camera-flip via `setCameraPosition` - to confirm
+the real API surface before writing any code against it.
+**Output:** rewrote `token_server/server.js`'s `/token` route (LiveKit JWT
+grant shape instead of 100ms's), replaced `HmsCallManager`/`hms_config.dart`
+with `CallManager`/`call_config.dart` (now thinner, since LiveKit's `Room`
+is already a `ChangeNotifier`), rewrote `call_widgets.dart`'s
+`ParticipantTile` around `lk.VideoTrackRenderer`, simplified `RoomMeta`
+(dropped 100ms-specific `hmsRoleMember`/`hmsRoleTrainer` fields - LiveKit
+grants permissions per-token, not via named dashboard roles), and updated
+both apps' `pre_join_screen.dart`/`in_call_screen.dart` and Android
+manifests (LiveKit's extra `ACCESS_NETWORK_STATE`/`CHANGE_NETWORK_STATE`/
+`BLUETOOTH_ADMIN` permissions). `flutter analyze` clean on all three
+packages after the swap; rebuilt and reinstalled both apps on the same
+physical device the candidate was live-testing on mid-swap, confirmed no
+crashes and normal chat/auth/scheduling activity continued working
+(`[AUTH] member profile created: DK`, `[SCHEDULE] requested call for
+2026-08-06T20:00:00.000` observed live in `adb logcat` during the rebuild).
+Documented the substitution and its rationale in ARCHITECTURE.md,
+DECISIONS.md ADR #3, and this entry rather than silently swapping vendors -
+see the assignment's own "No excuses: if a feature is missing, document why
++ fallback" clause, which this follows even though a fallback wasn't
+ultimately needed (LiveKit signup worked without a card).
+
 ---
 
 ## Repo proof

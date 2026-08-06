@@ -38,7 +38,7 @@ dependencies:
   shared:
     path: ../shared
   flutter_bloc: ^9.1.1
-  hmssdk_flutter: ^1.11.1
+  livekit_client: ^2.10.0
   intl: ^0.20.2
   cached_network_image: ^3.4.1
   permission_handler: ^11.3.1

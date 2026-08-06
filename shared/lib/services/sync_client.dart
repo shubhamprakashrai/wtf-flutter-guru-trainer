@@ -8,7 +8,7 @@ import '../utils/app_logger.dart';
 /// Local-first realtime relay. Both apps connect to the same tiny WebSocket
 /// server (see token_server/server.js) running on the dev machine so chat
 /// messages and call-request updates propagate between the two apps without
-/// any cloud backend. See HmsConfig for why every platform just uses
+/// any cloud backend. See CallConfig for why every platform just uses
 /// "localhost" (Android needs `adb reverse tcp:8090 tcp:8090` for this to
 /// resolve, whether it's an emulator or a physical device).
 class SyncClient {

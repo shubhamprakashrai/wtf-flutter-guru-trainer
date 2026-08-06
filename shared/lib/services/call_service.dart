@@ -8,7 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../models/call_request.dart';
 import '../models/room_meta.dart';
 import '../utils/app_logger.dart';
-import 'hms_config.dart';
+import 'call_config.dart';
 import 'storage_service.dart';
 import 'sync_client.dart';
 
@@ -89,11 +89,11 @@ class CallService {
     final room = RoomMeta(
       id: _uuid.v4(),
       callRequestId: req.id,
-      hmsRoomId: HmsConfig.devRoomId,
+      roomId: CallConfig.devRoomId,
     );
     await _rooms.put(room.id, room.toJson());
     SyncClient.instance.send({'type': 'room_meta', 'payload': room.toJson()});
-    AppLogger.instance.log(LogTag.schedule, 'approved ${req.id}, room ${room.hmsRoomId}');
+    AppLogger.instance.log(LogTag.schedule, 'approved ${req.id}, room ${room.roomId}');
     return room;
   }
 
@@ -113,22 +113,29 @@ class CallService {
     return null;
   }
 
-  /// Fetches a 100ms auth token from the local token_server for the given
-  /// user/role, scoped to the dev room. See token_server/server.js.
-  Future<String> fetchHmsToken({required String userId, required String role}) async {
+  /// Fetches a LiveKit access token (and the LiveKit server url to connect
+  /// to) from the local token_server for the given user, scoped to the dev
+  /// room. See token_server/server.js.
+  Future<CallToken> fetchCallToken({required String userId, required String userName}) async {
     final uri = Uri.parse(
-      '${HmsConfig.tokenServerBaseUrl}/token?userId=$userId&role=$role&roomId=${HmsConfig.devRoomId}',
+      '${CallConfig.tokenServerBaseUrl}/token?userId=$userId&userName=$userName&roomId=${CallConfig.devRoomId}',
     );
-    AppLogger.instance.log(LogTag.rtc, 'fetching token for $userId ($role)');
+    AppLogger.instance.log(LogTag.rtc, 'fetching token for $userId');
     final resp = await http.get(uri).timeout(const Duration(seconds: 8));
     if (resp.statusCode != 200) {
       throw Exception('Token server error ${resp.statusCode}: ${resp.body}');
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    return body['token'] as String;
+    return CallToken(token: body['token'] as String, url: body['url'] as String);
   }
 
   void dispose() {
     _sub?.cancel();
   }
+}
+
+class CallToken {
+  final String token;
+  final String url;
+  const CallToken({required this.token, required this.url});
 }

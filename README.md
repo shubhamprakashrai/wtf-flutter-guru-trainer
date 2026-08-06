@@ -3,7 +3,16 @@
 Two Flutter apps (Member-facing `guru_app`, Trainer-facing `trainer_app`) sharing
 a local Dart/Flutter package (`shared/`) for models, services, Bloc state
 management and UI, plus a tiny local Node server (`token_server/`) that issues
-100ms auth tokens and relays chat/scheduling events between the two apps.
+video-call auth tokens and relays chat/scheduling events between the two apps.
+
+> **RTC vendor note:** the assignment specifies 100ms. This build's 100ms
+> integration was fully implemented first, then swapped to
+> [LiveKit](https://livekit.io) mid-assessment, with interviewer + HR
+> approval, because every 100ms signup attempt required card details before
+> a project could even be created. See [`DECISIONS.md`](DECISIONS.md) ADR
+> #3 and [`AI_LEDGER.md`](AI_LEDGER.md) for the full trail - the
+> architecture (self-signed token server, single dev room, WebSocket relay)
+> is a like-for-like port either way.
 
 See also: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`DECISIONS.md`](DECISIONS.md),
 [`AI_LEDGER.md`](AI_LEDGER.md).
@@ -13,9 +22,10 @@ See also: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`DECISIONS.md`](DECISIONS.md),
 - Flutter 3.38+ / Dart 3.10+ (`flutter --version`)
 - Node.js 18+ (`node --version`)
 - Android Studio emulator (or two: one for each app) or physical devices
-- A [100ms](https://dashboard.100ms.live) account — free dev project is fine.
-  Video calling is the only feature that needs this; everything else (auth,
-  chat, scheduling, session logs) runs fully local without it.
+- A [LiveKit Cloud](https://cloud.livekit.io) project — free tier, no card
+  required at signup. Video calling is the only feature that needs this;
+  everything else (auth, chat, scheduling, session logs) runs fully local
+  without it.
 
 ## 1. Start the token server
 
@@ -23,8 +33,8 @@ See also: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`DECISIONS.md`](DECISIONS.md),
 cd token_server
 npm install
 cp .env.example .env
-# edit .env: paste your 100ms App Access Key + Secret from
-# https://dashboard.100ms.live/developer
+# edit .env: paste your LiveKit API Key + Secret + project URL from
+# https://cloud.livekit.io  ->  Settings -> Keys
 npm start
 ```
 
@@ -37,12 +47,12 @@ adb reverse tcp:8090 tcp:8090
 # repeat with -s <device-id> if you have more than one device attached
 ```
 
-(see `shared/lib/services/hms_config.dart` / `sync_client.dart`.)
+(see `shared/lib/services/call_config.dart` / `sync_client.dart`.)
 
-> **No 100ms account yet?** Chat, scheduling, onboarding and session logs all
-> work without it. `/token` will return a clear error until `.env` is filled
-> in, and only the "Join Call" screen is blocked. See ARCHITECTURE.md
-> "100ms integration" for what's assumed about your dashboard template.
+> **No LiveKit project yet?** Chat, scheduling, onboarding and session logs
+> all work without it. `/token` will return a clear error until `.env` is
+> filled in, and only the "Join Call" screen is blocked. See
+> ARCHITECTURE.md "Video calling (LiveKit)" for details.
 
 ## 2. Run both apps
 
@@ -102,7 +112,7 @@ DECISIONS.md.
 
 ```
 wtf_flutter_test/
-├─ token_server/     # 100ms token endpoint + WebSocket relay (Node)
+├─ token_server/     # LiveKit token endpoint + WebSocket relay (Node)
 ├─ shared/            # Flutter package: models, services, blocs, widgets
 ├─ guru_app/          # Member app
 └─ trainer_app/       # Trainer app

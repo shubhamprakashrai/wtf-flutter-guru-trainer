@@ -1,33 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:hmssdk_flutter/hmssdk_flutter.dart';
+import 'package:livekit_client/livekit_client.dart' as lk;
 
 /// One grid tile in the in-call screen (spec section D - "Two participant
 /// tiles (grid), name labels").
 class ParticipantTile extends StatelessWidget {
-  final HMSPeer peer;
-  final HMSVideoTrack? videoTrack;
-  final bool isMuted;
+  final lk.Participant participant;
+  final bool isLocal;
 
-  const ParticipantTile({super.key, required this.peer, required this.videoTrack, this.isMuted = false});
+  const ParticipantTile({super.key, required this.participant, this.isLocal = false});
 
   @override
   Widget build(BuildContext context) {
-    final hasVideo = videoTrack != null && !videoTrack!.isMute;
+    final videoPub = participant.videoTrackPublications.firstOrNull;
+    final videoTrack = videoPub?.track;
+    final hasVideo = videoTrack != null && !(videoPub?.muted ?? true);
+    final isMuted = participant.isMuted;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Stack(
         fit: StackFit.expand,
         children: [
           Container(color: const Color(0xFF1D2939)),
-          if (hasVideo)
-            HMSVideoView(track: videoTrack!, setMirror: peer.isLocal)
+          if (hasVideo && videoTrack is lk.VideoTrack)
+            lk.VideoTrackRenderer(videoTrack, mirrorMode: isLocal ? lk.VideoViewMirrorMode.mirror : lk.VideoViewMirrorMode.off)
           else
             Center(
               child: CircleAvatar(
                 radius: 32,
                 backgroundColor: Colors.white24,
                 child: Text(
-                  peer.name.isNotEmpty ? peer.name[0].toUpperCase() : '?',
+                  participant.name.isNotEmpty ? participant.name[0].toUpperCase() : '?',
                   style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w600),
                 ),
               ),
@@ -43,7 +46,7 @@ class ParticipantTile extends StatelessWidget {
                 children: [
                   if (isMuted) const Padding(padding: EdgeInsets.only(right: 4), child: Icon(Icons.mic_off, color: Colors.white, size: 14)),
                   Text(
-                    peer.isLocal ? '${peer.name} (You)' : peer.name,
+                    isLocal ? '${participant.name} (You)' : participant.name,
                     style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
                   ),
                 ],

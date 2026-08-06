@@ -11,7 +11,7 @@ shared/lib/blocs/*                -- Cubits: AuthCubit, ChatCubit, CallCubit,
         ▼                             screen/scope, thin - just adapts a
 shared/lib/services/*             -- service stream to Bloc state.
         │  reads/writes            AuthService, ChatService, CallService,
-        ▼                          LogService, SyncClient, HmsCallManager.
+        ▼                          LogService, SyncClient, CallManager.
 shared/lib/models/*                Pure Dart, no Flutter/Bloc dependency.
         │
         ▼
@@ -52,55 +52,66 @@ Hive key from the start. `endSession`/`addMemberFeedback`/`addTrainerNotes`
 then broadcast their updates over the relay so both sides converge on one
 record instead of ending up with two.
 
-## 100ms integration
+## Video calling (LiveKit)
+
+> **Why LiveKit and not 100ms?** The assignment's default/required RTC
+> vendor is 100ms, and this build's 100ms integration was fully implemented
+> first (HMSSDK join/preview/mute/reconnect, matching UI). Every attempt to
+> actually get a usable 100ms App Access Key, though, hit a signup flow that
+> required card details before a project could be created - not a paid
+> feature gate, the *account creation itself*. That was raised with, and
+> explicitly approved by, the interviewer and HR before swapping to
+> LiveKit. See DECISIONS.md ADR #3 and AI_LEDGER.md for the full trail. The
+> architecture below is a like-for-like port of the original 100ms design -
+> same token-server shape, same single-dev-room shortcut, same
+> `ChangeNotifier`-wrapped call manager - just retargeted at a different
+> WebRTC SFU.
 
 **Token generation.** `token_server/server.js` exposes
-`GET /token?userId=&role=&roomId=`, which self-signs a JWT with the shape
-100ms's SDK expects for an "app token" (`access_key`, `room_id`, `user_id`,
-`role`, `type: "app"`, `version: 2`, `iat`/`exp`/`jti`), signed with your
-100ms App Secret. This avoids a network round-trip to 100ms's Management API
-just to mint a token - the only call to 100ms's infrastructure is the actual
-room join. This is the "minimal token server" the assignment explicitly
-allows in place of a full Management-API-backed server.
+`GET /token?userId=&userName=&roomId=`, which self-signs a JWT with the
+grant shape LiveKit's SDKs expect (`iss` = API Key, `sub` = participant
+identity, `video: { room, roomJoin, canPublish, canSubscribe }`,
+`nbf`/`exp`/`jti`), signed with your LiveKit API Secret. This avoids any
+network round-trip to LiveKit just to mint a token - the only call to
+LiveKit's infrastructure is the actual room join, against the `LIVEKIT_URL`
+the same endpoint returns alongside the token. This is the "minimal token
+server" the assignment explicitly allows in place of a full
+Management-API-backed server (LiveKit's server SDKs exist for this too;
+self-signing is used here for the same reason as the original 100ms plan -
+fewer moving parts for a local dev build).
 
-**Assumption / fallback:** self-signed app tokens require your 100ms
-dashboard template to accept directly-signed tokens rather than requiring
-Room-Code-based auth. If your project only supports Room Codes, swap
-`/token` in `token_server/server.js` for a call to 100ms's
-`POST /v2/room-codes/room/:room_id` (Management API) instead - the Flutter
-side (`CallService.fetchHmsToken`) doesn't need to change, only the server
-route's implementation.
+**Rooms.** Rather than provisioning a new LiveKit room per approved call,
+every approved `CallRequest` reuses a single persistent dev room
+(`CallConfig.devRoomId = 'wtf-dev-room'`, see
+`shared/lib/services/call_config.dart`) - LiveKit creates a room on first
+join automatically, so there's no room-provisioning API call needed at all
+for this shortcut, even less ceremony than the 100ms version had. `RoomMeta`
+just maps a `CallRequest` to that room id so swapping in per-call room
+provisioning later is a one-function change in `CallService.approve`.
 
-**Rooms.** Rather than provisioning a new 100ms room per approved call via
-the Management API, every approved `CallRequest` reuses a single persistent
-dev room (`HmsConfig.devRoomId = 'wtf-dev-room'`, see
-`shared/lib/services/hms_config.dart`). This is the 100ms-recommended
-shortcut for dev/take-home projects. `RoomMeta` still models a per-request
-room (`hmsRoomId`, `hmsRoleMember`, `hmsRoleTrainer`) so swapping in real
-per-call room provisioning later is a one-function change in
-`CallService.approve`.
+**Permissions.** LiveKit doesn't have 100ms-style named dashboard roles;
+permissions (`canPublish`/`canSubscribe`/`roomJoin`) are grants baked
+directly into each token by the token server, identical for member and
+trainer in this build. The spec's "member cannot end for both" is
+satisfied the same way it would have been under 100ms: both roles get the
+same in-call button set (`Room.disconnect()` only ever leaves the *local*
+participant), and a real per-role restriction on ending the room for
+everyone would need a server-side moderation call this local build doesn't
+implement - documented as-scoped, acceptable per spec ("fine if SDK
+limits").
 
-**Roles.** The token's `role` field is `"member"` or `"trainer"`
-(`shared/lib/screens/call/pre_join_screen.dart` maps `UserRole` → that
-string). These must exist as Role names in your 100ms dashboard template -
-the default 100ms template ships with `host`/`guest` instead, so either
-rename roles in the dashboard or adjust the two string literals in
-`pre_join_screen.dart` to match your template.
-
-**Client flow.** `HmsCallManager` (`shared/lib/services/hms_call_manager.dart`)
-wraps `HMSSDK`: `startPreview()` warms up camera/mic for the pre-join device
-check screen without publishing to the room, then `join()` on the same SDK
-instance transitions straight into the call reusing those tracks.
-`onReconnecting`/`onReconnected` drive a banner in `InCallScreen`; mute/video
-toggle and camera flip call straight through to the SDK; `onPeerListUpdate`/
-`onTrackUpdate` keep the 2-tile grid current as people/tracks change.
-
-**Permission scoping (spec: "member cannot end for both").** Both roles get
-the same in-call button set in this build - the SDK-level distinction 100ms
-would use for that (role-scoped end-room permission, `endRoom` vs `leave`)
-needs a matching Role permission set in the dashboard, which isn't something
-this local build can configure. Documenting as-scoped: acceptable per spec
-("fine if SDK limits").
+**Client flow.** `CallManager` (`shared/lib/services/call_manager.dart`)
+wraps LiveKit's `Room`, which is itself a `ChangeNotifier` - `CallManager`
+mostly just re-exposes it with the same shape the UI expected from the
+100ms version. `startPreview()` creates a standalone camera track
+(`LocalVideoTrack.createCameraTrack`) for the pre-join device-check screen
+without connecting to any room; `connect()` disposes that preview track and
+calls `room.connect(url, token, fastConnectOptions: ...)` to publish
+fresh mic/camera tracks and join. `room.connectionState` (LiveKit's own
+`disconnected/connecting/reconnecting/connected` enum) drives the
+reconnecting banner directly; mute/video toggle call
+`localParticipant.setMicrophoneEnabled`/`setCameraEnabled`; camera flip
+calls `LocalVideoTrack.setCameraPosition`.
 
 ## What's intentionally out of scope
 

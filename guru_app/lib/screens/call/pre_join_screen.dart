@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hmssdk_flutter/hmssdk_flutter.dart';
+import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared/shared.dart';
 
@@ -20,15 +20,16 @@ class PreJoinScreen extends StatefulWidget {
 }
 
 class _PreJoinScreenState extends State<PreJoinScreen> {
-  late HmsCallManager _manager;
+  late CallManager _manager;
   bool _ready = false;
   String? _error;
-  String? _authToken;
+  CallToken? _callToken;
+  bool _ownershipTransferred = false;
 
   @override
   void initState() {
     super.initState();
-    _manager = HmsCallManager()..addListener(_onChange);
+    _manager = CallManager()..addListener(_onChange);
     _setup();
   }
 
@@ -38,7 +39,7 @@ class _PreJoinScreenState extends State<PreJoinScreen> {
     setState(() {
       _error = null;
       _ready = false;
-      _manager = HmsCallManager()..addListener(_onChange);
+      _manager = CallManager()..addListener(_onChange);
     });
     _setup();
   }
@@ -49,12 +50,14 @@ class _PreJoinScreenState extends State<PreJoinScreen> {
       if (!mounted) return;
       final services = context.read<AppServices>();
       final me = context.read<AuthCubit>().state.user!;
-      final role = me.role == UserRole.trainer ? 'trainer' : 'member';
-      final token = await services.call.fetchHmsToken(userId: me.id, role: role);
-      _authToken = token;
-      await _manager.init();
-      await _manager.startPreview(userName: me.name, authToken: token);
+      final callToken = await services.call.fetchCallToken(userId: me.id, userName: me.name);
+      _callToken = callToken;
+      await _manager.startPreview();
       if (!mounted) return;
+      if (_manager.errorMessage != null) {
+        setState(() => _error = _manager.errorMessage);
+        return;
+      }
       setState(() => _ready = true);
     } catch (e) {
       if (!mounted) return;
@@ -63,7 +66,6 @@ class _PreJoinScreenState extends State<PreJoinScreen> {
   }
 
   void _onChange() => setState(() {});
-  bool _ownershipTransferred = false;
 
   @override
   void dispose() {
@@ -84,7 +86,7 @@ class _PreJoinScreenState extends State<PreJoinScreen> {
       builder: (_) => InCallScreen(
         manager: _manager,
         userName: me.name,
-        authToken: _authToken!,
+        callToken: _callToken!,
         room: widget.room,
         sessionMemberId: widget.sessionMemberId,
         sessionTrainerId: widget.sessionTrainerId,
@@ -140,7 +142,7 @@ class _PreJoinScreenState extends State<PreJoinScreen> {
                         : !_ready || _manager.previewVideoTrack == null
                             ? const Center(child: CircularProgressIndicator(color: Colors.white))
                             : (_manager.isVideoOn
-                                ? HMSVideoView(track: _manager.previewVideoTrack!, setMirror: true)
+                                ? lk.VideoTrackRenderer(_manager.previewVideoTrack!, mirrorMode: lk.VideoViewMirrorMode.mirror)
                                 : const Center(
                                     child: Icon(Icons.videocam_off, color: Colors.white38, size: 48),
                                   )),

@@ -10,8 +10,8 @@ export 'services/auth_service.dart';
 export 'services/chat_service.dart';
 export 'services/call_service.dart';
 export 'services/log_service.dart';
-export 'services/hms_config.dart';
-export 'services/hms_call_manager.dart';
+export 'services/call_config.dart';
+export 'services/call_manager.dart';
 export 'services/app_services.dart';
 
 export 'blocs/auth_cubit.dart';

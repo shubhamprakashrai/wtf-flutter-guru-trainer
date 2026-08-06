@@ -25,12 +25,13 @@ added ceremony without a matching payoff for an app this size.
 **Trade-off accepted:** a "real" Bloc (event → state, testable via
 `bloc_test`) would give better auditability for something like the in-call
 connection state machine. Given the timebox, only the four Cubits above
-exist and `HmsCallManager` (the actual call state machine) is a
-`ChangeNotifier`, not a Cubit, because it has to implement 100ms's
-`HMSUpdateListener`/`HMSPreviewListener` interfaces, which are
-callback-shaped rather than event-shaped - forcing it into a Cubit would
-mean hand-translating every SDK callback into a "fire an event, wait for the
-new state" round-trip for no behavioral benefit.
+exist and `CallManager` (the actual call state machine, wrapping the RTC
+SDK's room object - see ADR #3) is a `ChangeNotifier`, not a Cubit. This
+turned out to be a good fit independent of which RTC vendor ended up behind
+it: LiveKit's own `Room`/`Participant` classes are themselves
+`ChangeNotifier`s, so `CallManager` mostly just re-exposes `Room` rather
+than hand-translating SDK callbacks into Bloc events for no behavioral
+benefit.
 
 ## ADR #2 — Storage: Hive, models as plain JSON maps (no codegen)
 
@@ -51,30 +52,44 @@ this data model needs relational queries; every list screen is
 "all records of type X, filtered/sorted in Dart," which Hive's `.values`
 handles fine at this scale.
 
-## ADR #3 — RTC strategy: 100ms self-signed dev token + single persistent room + WebSocket relay for app-to-app sync
+## ADR #3 — RTC strategy: LiveKit (swapped from 100ms) + self-signed dev token + single persistent room + WebSocket relay for app-to-app sync
 
-**Decision:** see ARCHITECTURE.md "100ms integration" for the full
-rationale. Summary of the three sub-decisions:
+**Decision:** [LiveKit](https://livekit.io) instead of 100ms as the RTC
+vendor, everything else about the strategy unchanged from the original
+100ms-based plan. Summary of the four sub-decisions:
 
+0. **Vendor: LiveKit, not 100ms.** The assignment's default/required vendor
+   is 100ms. Every 100ms signup attempt during this build asked for card
+   details before a project/App Access Key could be created, which blocks a
+   local, free take-home build. This was raised with, and explicitly
+   approved by, both the interviewer and HR before switching - not a
+   unilateral substitution. LiveKit's Cloud free tier requires only an
+   email to sign up and issue an API Key/Secret, no card. See
+   `AI_LEDGER.md` for the build sequence (100ms integration was fully built
+   and working first, per spec, then swapped once the card requirement was
+   confirmed to be a hard blocker rather than a one-off signup quirk).
+   Everything downstream of "get a token, join a room, render tiles, toggle
+   mute/video/camera, handle reconnects" carried over essentially unchanged
+   in shape - see ARCHITECTURE.md "Video calling (LiveKit)".
 1. **Token minting** happens locally in `token_server/` by self-signing a
-   JWT with the 100ms App Access Key/Secret, rather than calling 100ms's
-   Management API - fewer moving parts, and the assignment explicitly
-   allows a "minimal token server."
+   JWT with the LiveKit API Key/Secret, rather than calling any LiveKit
+   management endpoint - fewer moving parts, and the assignment explicitly
+   allows a "minimal token server" (this shape is identical to what the
+   100ms version did).
 2. **One dev room reused for every call** rather than provisioning a room
-   per `CallRequest` via the Management API - this is 100ms's own
-   recommended shortcut for take-home/dev builds.
+   per `CallRequest` - same shortcut the original 100ms plan used, still
+   appropriate for a dev/take-home build with LiveKit.
 3. **A WebSocket relay** (same Node process as the token server) is the
    *only* way `guru_app` and `trainer_app` learn about each other's chat
    messages, approvals, and session-log updates, since the assignment rules
-   out a shared cloud backend for app data. This is separate from 100ms
+   out a shared cloud backend for app data. This is separate from LiveKit
    itself, which only carries the actual audio/video.
 
-**Fallback documented, not implemented:** if a reviewer's 100ms project only
-accepts Room-Code-based tokens (newer dashboard default) rather than
-directly-signed app tokens, `/token`'s implementation needs to switch to
-calling 100ms's Management API - flagged in ARCHITECTURE.md rather than
-guessed at, since it depends on dashboard configuration this build can't
-see.
+**What would need to change to go back to 100ms:** `token_server/server.js`'s
+`/token` route (claim shape only), `shared/lib/services/call_manager.dart`
+and `call_widgets.dart` (SDK calls), and the `livekit_client` dependency in
+`shared`/`guru_app`/`trainer_app` pubspecs - the rest of the app (chat,
+scheduling, session logs, UI) has no RTC-vendor awareness at all.
 
 ## Explicitly skipped (per assignment's "No excuses" clause)
 

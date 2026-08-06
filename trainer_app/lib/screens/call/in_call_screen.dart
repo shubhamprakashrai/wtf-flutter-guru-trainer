@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hmssdk_flutter/hmssdk_flutter.dart';
 import 'package:shared/shared.dart';
 
 class InCallScreen extends StatefulWidget {
-  final HmsCallManager manager;
+  final CallManager manager;
   final String userName;
-  final String authToken;
+  final CallToken callToken;
   final RoomMeta room;
   final String sessionMemberId;
   final String sessionTrainerId;
@@ -15,7 +14,7 @@ class InCallScreen extends StatefulWidget {
     super.key,
     required this.manager,
     required this.userName,
-    required this.authToken,
+    required this.callToken,
     required this.room,
     required this.sessionMemberId,
     required this.sessionTrainerId,
@@ -33,7 +32,7 @@ class _InCallScreenState extends State<InCallScreen> {
   void initState() {
     super.initState();
     widget.manager.addListener(_onChange);
-    widget.manager.join(userName: widget.userName, authToken: widget.authToken);
+    widget.manager.connect(url: widget.callToken.url, userName: widget.userName, token: widget.callToken.token);
   }
 
   void _onChange() {
@@ -79,10 +78,8 @@ class _InCallScreenState extends State<InCallScreen> {
   @override
   Widget build(BuildContext context) {
     final manager = widget.manager;
-    final peers = <HMSPeerSlot>[
-      if (manager.localPeer != null) HMSPeerSlot(manager.localPeer!, manager.localPeer is HMSLocalPeer ? (manager.localPeer as HMSLocalPeer).videoTrack : null),
-      ...manager.remotePeers.map((p) => HMSPeerSlot(p, p is HMSRemotePeer ? p.videoRemoteTrack : null)),
-    ];
+    final local = manager.localParticipant;
+    final remotes = manager.remoteParticipants;
 
     return PopScope(
       canPop: false,
@@ -114,10 +111,13 @@ class _InCallScreenState extends State<InCallScreen> {
                         crossAxisSpacing: 12,
                         childAspectRatio: 0.85,
                       ),
-                      itemCount: peers.length,
+                      itemCount: (local != null ? 1 : 0) + remotes.length,
                       itemBuilder: (context, i) {
-                        final slot = peers[i];
-                        return ParticipantTile(peer: slot.peer, videoTrack: slot.videoTrack);
+                        if (local != null && i == 0) {
+                          return ParticipantTile(participant: local, isLocal: true);
+                        }
+                        final remote = remotes[local != null ? i - 1 : i];
+                        return ParticipantTile(participant: remote);
                       },
                     ),
                   ),
@@ -159,12 +159,6 @@ class _InCallScreenState extends State<InCallScreen> {
       ),
     );
   }
-}
-
-class HMSPeerSlot {
-  final HMSPeer peer;
-  final HMSVideoTrack? videoTrack;
-  HMSPeerSlot(this.peer, this.videoTrack);
 }
 
 class _RatingSheet extends StatefulWidget {
