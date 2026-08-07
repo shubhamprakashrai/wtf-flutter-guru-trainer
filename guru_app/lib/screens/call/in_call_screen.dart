@@ -69,6 +69,10 @@ class _InCallScreenState extends State<InCallScreen> {
       context: context,
       isDismissible: false,
       enableDrag: false,
+      // Without this, the sheet is capped at a fixed fraction of the screen
+      // and doesn't properly resize for the keyboard - the note TextField
+      // would get covered/overflow as soon as it's focused.
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => isTrainer ? _TrainerNotesSheet(sessionLogId: log.id) : _RatingSheet(sessionLogId: log.id),
@@ -198,7 +202,7 @@ class _RatingSheetState extends State<_RatingSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(24, 20, 24, 20 + MediaQuery.of(context).viewInsets.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -272,7 +276,7 @@ class _TrainerNotesSheetState extends State<_TrainerNotesSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(24, 20, 24, 20 + MediaQuery.of(context).viewInsets.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,

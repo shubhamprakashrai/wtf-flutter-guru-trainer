@@ -144,11 +144,14 @@ class _ProfileSetup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    // Sits inside a fixed-height PageView page - when the keyboard opens,
+    // the Scaffold shrinks and a plain centered Column would overflow.
+    // A scroll view lets the content ride up above the keyboard instead.
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text('Create your profile', style: Theme.of(context).textTheme.headlineLarge),
           const SizedBox(height: 8),
