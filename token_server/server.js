@@ -93,23 +93,51 @@ const server = app.listen(PORT, () => {
 });
 
 // --- WebSocket relay -------------------------------------------------------
-// Dumb fan-out: broadcast every message to every other connected client.
-// Both Flutter apps connect here and apply events to their own local Hive
-// storage (see shared/lib/services/sync_client.dart).
+// Fan-out broadcast between the two Flutter apps, plus a small in-memory
+// "last known state" cache for call_request/room_meta/session_log so a
+// client that was offline when an update happened (app restarted mid-flow,
+// adb reverse dropped, etc.) still catches up the moment it reconnects,
+// instead of being stuck on stale local data forever. Chat messages are
+// intentionally NOT cached here - they already have their own durable
+// per-device history (Hive) plus an offline send queue on the client, so
+// replaying them here would just duplicate work and risk re-showing old
+// messages as "new" on reconnect.
 const wss = new WebSocketServer({ server });
 
+const CACHED_TYPES = new Set(['call_request', 'room_meta', 'session_log']);
+// type -> Map<id, rawJsonString>
+const lastKnownState = new Map([...CACHED_TYPES].map((t) => [t, new Map()]));
+
 wss.on('connection', (socket) => {
-  console.log(`[relay] client connected (${wss.clients.size} total)`);
+  console.log(`[relay] client connected (${wss.clients.size + 1} total)`);
+
+  // Replay everything we know about so this client (even a fresh install
+  // with empty local storage) starts in sync rather than waiting for the
+  // next live update.
+  for (const store of lastKnownState.values()) {
+    for (const raw of store.values()) {
+      socket.send(raw);
+    }
+  }
 
   socket.on('message', (data) => {
+    const raw = data.toString();
+    try {
+      const event = JSON.parse(raw);
+      if (CACHED_TYPES.has(event.type) && event.payload && event.payload.id) {
+        lastKnownState.get(event.type).set(event.payload.id, raw);
+      }
+    } catch {
+      // Non-JSON or unexpected shape - still relay it, just don't cache it.
+    }
     for (const client of wss.clients) {
       if (client !== socket && client.readyState === client.OPEN) {
-        client.send(data.toString());
+        client.send(raw);
       }
     }
   });
 
   socket.on('close', () => {
-    console.log(`[relay] client disconnected (${wss.clients.size} total)`);
+    console.log(`[relay] client disconnected (${wss.clients.size - 1} total)`);
   });
 });
