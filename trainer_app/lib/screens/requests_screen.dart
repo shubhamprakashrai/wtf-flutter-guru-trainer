@@ -88,9 +88,9 @@ class _RequestsView extends StatelessWidget {
               return Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE4E7EC)),
+                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,7 +104,7 @@ class _RequestsView extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(member?.name ?? r.memberId, style: const TextStyle(fontWeight: FontWeight.w600)),
-                              Text(_formatDateTime(r.scheduledFor), style: const TextStyle(fontSize: 12, color: Color(0xFF667085))),
+                              Text(_formatDateTime(r.scheduledFor), style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                             ],
                           ),
                         ),
@@ -113,7 +113,7 @@ class _RequestsView extends StatelessWidget {
                     ),
                     if (r.note.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      Text(r.note, style: const TextStyle(color: Color(0xFF344054))),
+                      Text(r.note, style: Theme.of(context).textTheme.bodyMedium),
                     ],
                     if (r.status == CallRequestStatus.pending) ...[
                       const SizedBox(height: 12),

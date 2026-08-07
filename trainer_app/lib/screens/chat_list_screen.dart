@@ -63,9 +63,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE4E7EC)),
+                        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                       ),
                       child: Row(
                         children: [
@@ -81,7 +81,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                   row.last?.text ?? 'No messages yet',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 13, color: Color(0xFF667085)),
+                                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                 ),
                               ],
                             ),
@@ -90,7 +90,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               if (row.last != null)
-                                Text(row.last!.createdAt.timeAgo, style: const TextStyle(fontSize: 11, color: Color(0xFF98A2B3))),
+                                Text(row.last!.createdAt.timeAgo, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                               if (unread > 0) ...[
                                 const SizedBox(height: 4),
                                 Container(

@@ -80,6 +80,7 @@ class _HomeActionCardState extends State<HomeActionCard> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTapDown: (_) => setState(() => _scale = 0.97),
       onTapUp: (_) => setState(() => _scale = 1.0),
@@ -91,9 +92,9 @@ class _HomeActionCardState extends State<HomeActionCard> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: scheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE4E7EC)),
+            border: Border.all(color: scheme.outlineVariant),
           ),
           child: Row(
             children: [
@@ -131,13 +132,13 @@ class _HomeActionCardState extends State<HomeActionCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(widget.title, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600, color: const Color(0xFF1D2939))),
+                    Text(widget.title, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600, color: scheme.onSurface)),
                     const SizedBox(height: 2),
                     Text(widget.subtitle, style: Theme.of(context).textTheme.bodyMedium),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFF98A2B3)),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
             ],
           ),
         ),

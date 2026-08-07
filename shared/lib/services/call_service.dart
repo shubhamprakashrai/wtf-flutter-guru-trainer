@@ -9,6 +9,7 @@ import '../models/call_request.dart';
 import '../models/room_meta.dart';
 import '../utils/app_logger.dart';
 import 'call_config.dart';
+import 'notification_service.dart';
 import 'storage_service.dart';
 import 'sync_client.dart';
 
@@ -94,6 +95,15 @@ class CallService {
     await _rooms.put(room.id, room.toJson());
     SyncClient.instance.send({'type': 'room_meta', 'payload': room.toJson()});
     AppLogger.instance.log(LogTag.schedule, 'approved ${req.id}, room ${room.roomId}');
+
+    // Stretch (spec section 15): local reminder 10 minutes before the call.
+    // Best-effort - each app schedules its own copy on its own device.
+    unawaited(NotificationService.scheduleCallReminder(
+      callRequestId: req.id,
+      scheduledFor: req.scheduledFor,
+      title: 'Upcoming call',
+      body: 'Your call starts in 10 minutes.',
+    ));
     return room;
   }
 
@@ -101,6 +111,7 @@ class CallService {
     final updated = req.copyWith(status: CallRequestStatus.declined, declineReason: reason);
     await _requests.put(updated.id, updated.toJson());
     SyncClient.instance.send({'type': 'call_request', 'payload': updated.toJson()});
+    unawaited(NotificationService.cancelReminder(req.id));
     AppLogger.instance.log(LogTag.schedule, 'declined ${req.id}: $reason');
     return updated;
   }

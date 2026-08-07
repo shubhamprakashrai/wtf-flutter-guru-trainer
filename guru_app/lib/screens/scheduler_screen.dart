@@ -100,7 +100,7 @@ class _SchedulerViewState extends State<_SchedulerView> with SingleTickerProvide
         bottom: TabBar(
           controller: _tabController,
           labelColor: Theme.of(context).colorScheme.primary,
-          unselectedLabelColor: const Color(0xFF667085),
+          unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
           indicatorColor: Theme.of(context).colorScheme.primary,
           tabs: const [Tab(text: 'New Request'), Tab(text: 'My Requests')],
         ),
@@ -194,9 +194,9 @@ class _SchedulerViewState extends State<_SchedulerView> with SingleTickerProvide
             return Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE4E7EC)),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,10 +210,10 @@ class _SchedulerViewState extends State<_SchedulerView> with SingleTickerProvide
                   ),
                   if (r.note.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text(r.note, style: const TextStyle(color: Color(0xFF667085))),
+                    Text(r.note, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   ],
                   const SizedBox(height: 6),
-                  Text(_statusCopy(r), style: const TextStyle(fontSize: 12, color: Color(0xFF98A2B3))),
+                  Text(_statusCopy(r), style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   if (_isJoinable(r)) ...[
                     const SizedBox(height: 10),
                     SizedBox(

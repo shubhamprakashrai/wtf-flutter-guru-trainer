@@ -44,9 +44,9 @@ class _LoginScreenState extends State<LoginScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE4E7EC)),
+                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 child: Row(
                   children: [
@@ -57,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(SeedData.trainer.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                          const Text('Lead Trainer', style: TextStyle(fontSize: 12, color: Color(0xFF667085))),
+                          Text('Lead Trainer', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         ],
                       ),
                     ),

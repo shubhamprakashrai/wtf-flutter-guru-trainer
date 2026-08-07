@@ -49,5 +49,7 @@
 	<string>Guru needs camera access for video calls with your trainer.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Guru needs microphone access for video calls with your trainer.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Guru needs photo library access to share images in chat.</string>
 </dict>
 </plist>

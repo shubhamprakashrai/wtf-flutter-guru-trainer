@@ -103,16 +103,16 @@ class _LogTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       onTap: () => showModalBottomSheet(
         context: context,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
         builder: (_) => _LogDetailSheet(log: log),
       ),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE4E7EC)),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Row(
           children: [
@@ -129,7 +129,7 @@ class _LogTile extends StatelessWidget {
                 children: [
                   Text(_formatDate(log.startedAt), style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text(log.durationSec.asDuration, style: const TextStyle(fontSize: 12, color: Color(0xFF667085))),
+                  Text(log.durationSec.asDuration, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -180,8 +180,8 @@ class _LogDetailSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          _row('Duration', log.durationSec.asDuration),
-          _row('Rating', log.rating != null ? '${log.rating} / 5' : 'Not rated'),
+          _row(context, 'Duration', log.durationSec.asDuration),
+          _row(context, 'Rating', log.rating != null ? '${log.rating} / 5' : 'Not rated'),
           const SizedBox(height: 12),
           if (log.memberNotes != null) ...[
             const Text('Your note', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -199,12 +199,12 @@ class _LogDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _row(String label, String value) => Padding(
+  Widget _row(BuildContext context, String label, String value) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(color: Color(0xFF667085))),
+            Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
             Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
           ],
         ),

@@ -24,6 +24,8 @@ Future<void> main() async {
     };
 
     await StorageService.init();
+    await NotificationService.init();
+    unawaited(NotificationService.requestPermission());
     SyncClient.instance.connect();
     final services = AppServices();
     services.startListening();
@@ -41,20 +43,29 @@ class GuruApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return RepositoryProvider<AppServices>.value(
       value: services,
-      child: BlocProvider<AuthCubit>(
-        create: (_) => AuthCubit(services.auth),
-        child: MaterialApp(
-          title: 'Guru App',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.build(const Color(0xFF1769E0)),
-          home: BlocBuilder<AuthCubit, AuthState>(
-            builder: (context, state) {
-              if (!state.onboarded || state.user == null) {
-                return const OnboardingScreen();
-              }
-              return const HomeScreen();
-            },
-          ),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthCubit>(create: (_) => AuthCubit(services.auth)),
+          BlocProvider<ThemeCubit>(create: (_) => ThemeCubit()),
+        ],
+        child: BlocBuilder<ThemeCubit, ThemeMode>(
+          builder: (context, themeMode) {
+            return MaterialApp(
+              title: 'Guru App',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.build(const Color(0xFF1769E0)),
+              darkTheme: AppTheme.buildDark(const Color(0xFF1769E0)),
+              themeMode: themeMode,
+              home: BlocBuilder<AuthCubit, AuthState>(
+                builder: (context, state) {
+                  if (!state.onboarded || state.user == null) {
+                    return const OnboardingScreen();
+                  }
+                  return const HomeScreen();
+                },
+              ),
+            );
+          },
         ),
       ),
     );

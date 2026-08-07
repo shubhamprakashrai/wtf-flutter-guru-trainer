@@ -299,6 +299,55 @@ already-verified-working app for a stretch item the spec explicitly ranks
 lowest-priority. Documented as a deliberate skip in DECISIONS.md rather
 than shipped half-working.
 
+### 19. Prompt: "krdo" (do it) - implement all four remaining stretch items, HR-authorized
+
+**Context:** after the assignment was already submitted (GitHub link + demo
+video sent), the candidate asked for the four spec section 15 stretch
+items - previously scoped out and documented as deliberate skips in entry
+#18 / DECISIONS.md - to be implemented after all, citing explicit HR
+authorization to keep working post-submission. Flagged the trade-off first
+(new commits after the video was recorded, regression risk on a
+verified-working app) and got explicit confirmation before proceeding,
+rather than silently reversing a documented scope decision.
+
+**Output, in dependency order:**
+- **Light/Dark theme toggle**: `ThemeCubit` + `AppTheme.buildDark`, wired
+  into both `main()`s via `BlocBuilder<ThemeCubit, ThemeMode>`. Swept
+  hardcoded literal colors to `Theme.of(context).colorScheme` across the
+  shared widgets used on nearly every screen first (`HomeActionCard`,
+  `ChatBubble`, `MessageInputBar`, `DayChip`/`TimeSlotChip`, `DevPanel`),
+  then each app's own screen-level card/list-tile containers -
+  deliberately left the in-call screens on their fixed dark background,
+  since video-call UIs are conventionally always-dark regardless of app
+  theme.
+- **Offline send queue**: added `SyncClient.connectionChanges` (previously
+  only `isConnected` existed, no way to react to a reconnect) and wired
+  `ChatService` to persist offline-sent messages as `MessageStatus.sending`
+  and flush them - resending any attachment bytes too - the moment the
+  relay comes back. Added a distinct clock icon in `ChatBubble` for the
+  queued state (previously "sending" and "sent" rendered identically).
+- **Push notifications**: `NotificationService`
+  (`flutter_local_notifications` + `timezone`), scheduled from
+  `CallService.approve`/cancelled from `decline`, using
+  `AndroidScheduleMode.inexactAllowWhileIdle` specifically to avoid needing
+  the separately-user-granted `SCHEDULE_EXACT_ALARM` permission for what's
+  just a reminder, not a time-critical alarm.
+- **Image attachments**: added a nullable `attachmentPath` to `ChatMessage`
+  (persisted locally, but deliberately *not* sent as-is over the relay -
+  a sender's file path is meaningless on the receiver's filesystem). Images
+  travel as base64 in a sibling field alongside the normal `chat_message`
+  payload (downsized via `image_picker`'s `maxWidth`/`imageQuality` first,
+  since the relay is a plain-text WebSocket); each side saves its own local
+  copy via `path_provider` on receipt. `ChatBubble` renders a thumbnail
+  when present.
+
+`flutter analyze` clean on all three packages after each of the four
+(fixed one real lint along the way - `dart_style`'s null-aware map-entry
+operator applies to the *value* position, `'key': ?value`, not a leading
+`?'key': value`, which looks natural but null-checks the key instead), all
+13 unit tests still passing. Live device rebuild/verification was pending
+reconnection at write time - noted rather than claimed.
+
 ---
 
 ## Repo proof

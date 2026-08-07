@@ -12,7 +12,8 @@ class DayChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
+    final scheme = Theme.of(context).colorScheme;
+    final primary = scheme.primary;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -20,18 +21,18 @@ class DayChip extends StatelessWidget {
         width: 64,
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? primary : Colors.white,
+          color: selected ? primary : scheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: selected ? primary : const Color(0xFFE4E7EC)),
+          border: Border.all(color: selected ? primary : scheme.outlineVariant),
         ),
         child: Column(
           children: [
             Text(_weekdays[date.weekday - 1],
-                style: TextStyle(fontSize: 12, color: selected ? Colors.white70 : const Color(0xFF667085))),
+                style: TextStyle(fontSize: 12, color: selected ? Colors.white70 : scheme.onSurfaceVariant)),
             const SizedBox(height: 4),
             Text('${date.day}',
                 style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w600, color: selected ? Colors.white : const Color(0xFF1D2939))),
+                    fontSize: 18, fontWeight: FontWeight.w600, color: selected ? Colors.white : scheme.onSurface)),
           ],
         ),
       ),
@@ -48,7 +49,8 @@ class TimeSlotChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
+    final scheme = Theme.of(context).colorScheme;
+    final primary = scheme.primary;
     final h = slot.hour % 12 == 0 ? 12 : slot.hour % 12;
     final m = slot.minute.toString().padLeft(2, '0');
     final ampm = slot.hour >= 12 ? 'PM' : 'AM';
@@ -58,16 +60,16 @@ class TimeSlotChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: disabled ? const Color(0xFFF2F4F7) : (selected ? primary : Colors.white),
+          color: disabled ? scheme.surfaceContainerHighest : (selected ? primary : scheme.surface),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: selected ? primary : const Color(0xFFE4E7EC)),
+          border: Border.all(color: selected ? primary : scheme.outlineVariant),
         ),
         child: Text(
           '$h:$m $ampm',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: disabled ? const Color(0xFF98A2B3) : (selected ? Colors.white : const Color(0xFF1D2939)),
+            color: disabled ? scheme.onSurfaceVariant.withValues(alpha: 0.6) : (selected ? Colors.white : scheme.onSurface),
           ),
         ),
       ),

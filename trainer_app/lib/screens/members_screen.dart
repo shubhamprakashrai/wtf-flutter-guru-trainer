@@ -34,9 +34,9 @@ class MembersScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE4E7EC)),
+                      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                     ),
                     child: Row(
                       children: [
@@ -47,11 +47,11 @@ class MembersScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(member.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                              Text(member.email, style: const TextStyle(fontSize: 12, color: Color(0xFF667085))),
+                              Text(member.email, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                             ],
                           ),
                         ),
-                        const Icon(Icons.chevron_right, color: Color(0xFF98A2B3)),
+                        Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ],
                     ),
                   ),

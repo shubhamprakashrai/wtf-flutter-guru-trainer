@@ -78,7 +78,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         width: i == _page ? 20 : 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: i == _page ? const Color(0xFF1769E0) : const Color(0xFFE4E7EC),
+                          color: i == _page ? const Color(0xFF1769E0) : Theme.of(context).colorScheme.outlineVariant,
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
@@ -168,9 +168,12 @@ class _ProfileSetup extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: trainerSelected ? const Color(0xFF1769E0) : const Color(0xFFE4E7EC), width: trainerSelected ? 2 : 1),
+                border: Border.all(
+                  color: trainerSelected ? const Color(0xFF1769E0) : Theme.of(context).colorScheme.outlineVariant,
+                  width: trainerSelected ? 2 : 1,
+                ),
               ),
               child: Row(
                 children: [
@@ -181,7 +184,7 @@ class _ProfileSetup extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(SeedData.trainer.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        const Text('Lead Trainer', style: TextStyle(fontSize: 12, color: Color(0xFF667085))),
+                        Text('Lead Trainer', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       ],
                     ),
                   ),

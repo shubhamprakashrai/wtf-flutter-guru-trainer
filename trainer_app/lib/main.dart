@@ -24,6 +24,8 @@ Future<void> main() async {
     };
 
     await StorageService.init();
+    await NotificationService.init();
+    unawaited(NotificationService.requestPermission());
     SyncClient.instance.connect();
     final services = AppServices();
     services.startListening();
@@ -41,20 +43,29 @@ class TrainerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return RepositoryProvider<AppServices>.value(
       value: services,
-      child: BlocProvider<AuthCubit>(
-        create: (_) => AuthCubit(services.auth),
-        child: MaterialApp(
-          title: 'Trainer App',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.build(const Color(0xFFE50914)),
-          home: BlocBuilder<AuthCubit, AuthState>(
-            builder: (context, state) {
-              if (!state.onboarded || state.user == null) {
-                return const LoginScreen();
-              }
-              return const HomeScreen();
-            },
-          ),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthCubit>(create: (_) => AuthCubit(services.auth)),
+          BlocProvider<ThemeCubit>(create: (_) => ThemeCubit()),
+        ],
+        child: BlocBuilder<ThemeCubit, ThemeMode>(
+          builder: (context, themeMode) {
+            return MaterialApp(
+              title: 'Trainer App',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.build(const Color(0xFFE50914)),
+              darkTheme: AppTheme.buildDark(const Color(0xFFE50914)),
+              themeMode: themeMode,
+              home: BlocBuilder<AuthCubit, AuthState>(
+                builder: (context, state) {
+                  if (!state.onboarded || state.user == null) {
+                    return const LoginScreen();
+                  }
+                  return const HomeScreen();
+                },
+              ),
+            );
+          },
         ),
       ),
     );

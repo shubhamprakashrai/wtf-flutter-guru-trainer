@@ -19,11 +19,23 @@ class SyncClient {
 
   WebSocketChannel? _channel;
   final _controller = StreamController<Map<String, dynamic>>.broadcast();
+  final _connectionController = StreamController<bool>.broadcast();
   bool _stopped = false;
   bool _connected = false;
 
   Stream<Map<String, dynamic>> get events => _controller.stream;
   bool get isConnected => _connected;
+
+  /// Fires whenever the relay connection flips up/down - used by
+  /// [ChatService] to flush the offline send queue on reconnect (spec
+  /// section 15 stretch: "Offline send queue for chat").
+  Stream<bool> get connectionChanges => _connectionController.stream;
+
+  void _setConnected(bool value) {
+    if (_connected == value) return;
+    _connected = value;
+    _connectionController.add(value);
+  }
 
   Future<void> connect({String? host, int port = 8090}) async {
     _stopped = false;
@@ -37,7 +49,7 @@ class SyncClient {
       _channel = channel;
       channel.stream.listen(
         (raw) {
-          _connected = true;
+          _setConnected(true);
           try {
             final data = jsonDecode(raw as String) as Map<String, dynamic>;
             _controller.add(data);
@@ -47,7 +59,7 @@ class SyncClient {
         onError: (_) => _scheduleReconnect(host, port),
         cancelOnError: true,
       );
-      _connected = true;
+      _setConnected(true);
       AppLogger.instance.log(LogTag.chat, 'sync connected to $host:$port');
     } catch (e) {
       AppLogger.instance.log(LogTag.chat, 'sync connect failed: $e');
@@ -57,7 +69,7 @@ class SyncClient {
 
   void _scheduleReconnect(String host, int port) {
     if (_stopped) return;
-    _connected = false;
+    _setConnected(false);
     Timer(const Duration(seconds: 2), () => _connect(host, port));
   }
 

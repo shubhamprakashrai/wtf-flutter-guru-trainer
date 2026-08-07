@@ -4,7 +4,11 @@ class MessageInputBar extends StatefulWidget {
   final ValueChanged<String> onSend;
   final List<String> quickReplies;
 
-  const MessageInputBar({super.key, required this.onSend, this.quickReplies = const []});
+  /// Attachments (spec section 15 stretch) - omit to hide the paperclip
+  /// button entirely.
+  final VoidCallback? onAttach;
+
+  const MessageInputBar({super.key, required this.onSend, this.quickReplies = const [], this.onAttach});
 
   @override
   State<MessageInputBar> createState() => _MessageInputBarState();
@@ -28,12 +32,13 @@ class _MessageInputBarState extends State<MessageInputBar> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SafeArea(
       top: false,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: const Border(top: BorderSide(color: Color(0xFFE4E7EC))),
+          color: scheme.surface,
+          border: Border(top: BorderSide(color: scheme.outlineVariant)),
         ),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         child: Column(
@@ -50,7 +55,7 @@ class _MessageInputBarState extends State<MessageInputBar> {
                     final reply = widget.quickReplies[i];
                     return ActionChip(
                       label: Text(reply, style: const TextStyle(fontSize: 13)),
-                      backgroundColor: const Color(0xFFF2F4F7),
+                      backgroundColor: scheme.surfaceContainerHighest,
                       onPressed: () => _send(reply),
                     );
                   },
@@ -59,6 +64,12 @@ class _MessageInputBarState extends State<MessageInputBar> {
             if (widget.quickReplies.isNotEmpty) const SizedBox(height: 8),
             Row(
               children: [
+                if (widget.onAttach != null)
+                  IconButton(
+                    tooltip: 'Attach photo',
+                    icon: Icon(Icons.attach_file, color: scheme.onSurfaceVariant),
+                    onPressed: widget.onAttach,
+                  ),
                 Expanded(
                   child: TextField(
                     controller: _controller,
@@ -68,7 +79,7 @@ class _MessageInputBarState extends State<MessageInputBar> {
                     decoration: InputDecoration(
                       hintText: 'Message',
                       filled: true,
-                      fillColor: const Color(0xFFF7F8FA),
+                      fillColor: scheme.surfaceContainerHighest,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),

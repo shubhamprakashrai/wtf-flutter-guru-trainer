@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -24,12 +25,16 @@ class ChatCubit extends Cubit<ChatUiState> {
   final String meId;
   final String otherId;
   StreamSubscription? _sub;
+  StreamSubscription? _localSub;
 
   ChatCubit({required this.chatService, required this.chatId, required this.meId, required this.otherId})
       : super(const ChatUiState()) {
     _load();
     markRead();
     _sub = chatService.incoming.listen(_onIncoming);
+    // Offline-queue flush (spec section 15 stretch) resends messages once
+    // reconnected without going through the typing-delay path above.
+    _localSub = chatService.localUpdates.listen((_) => _load());
   }
 
   void _load() => emit(state.copyWith(messages: chatService.messagesFor(chatId)));
@@ -41,6 +46,11 @@ class ChatCubit extends Cubit<ChatUiState> {
 
   Future<void> send(String text) async {
     await chatService.sendMessage(senderId: meId, receiverId: otherId, text: text);
+    _load();
+  }
+
+  Future<void> sendImage(Uint8List bytes) async {
+    await chatService.sendImageMessage(senderId: meId, receiverId: otherId, imageBytes: bytes);
     _load();
   }
 
@@ -57,6 +67,7 @@ class ChatCubit extends Cubit<ChatUiState> {
   @override
   Future<void> close() {
     _sub?.cancel();
+    _localSub?.cancel();
     return super.close();
   }
 }

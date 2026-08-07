@@ -49,5 +49,7 @@
 	<string>Trainer needs camera access for video calls with your members.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Trainer needs microphone access for video calls with your members.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Trainer needs photo library access to share images in chat.</string>
 </dict>
 </plist>

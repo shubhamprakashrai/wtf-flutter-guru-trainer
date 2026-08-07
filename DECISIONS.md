@@ -91,30 +91,55 @@ and `call_widgets.dart` (SDK calls), and the `livekit_client` dependency in
 `shared`/`guru_app`/`trainer_app` pubspecs - the rest of the app (chat,
 scheduling, session logs, UI) has no RTC-vendor awareness at all.
 
-## Explicitly skipped (per assignment's "No excuses" clause)
-
-- **Image/file attachments in chat** - UI has quick-reply chips and a text
-  composer only. Fallback: not implemented; would need `image_picker` +
-  either base64-in-Hive or a shared file relay, both meaningful scope adds.
-- **Local scheduled push notifications** - not implemented; the in-app
-  "Join Call" badge (camera icon w/ dot) covers the 10-minutes-before
-  affordance the spec asks for without needing OS notification permissions.
-- **Offline send queue for chat** - messages are written to Hive
-  synchronously before the relay send, so they survive an app restart, but
-  there's no retry/backoff if the relay is down when a message is sent -
-  it simply won't reach the other app until both are online again.
-- **Light/Dark theme toggle** - evaluated, not implemented. Nearly every
-  screen uses hardcoded literal colors (`Color(0xFFF2F4F7)`,
-  `Color(0xFF1D2939)`, etc.) rather than theme-relative ones, so a real dark
-  mode means auditing every screen file, not just adding a second
-  `ThemeData`. Chose not to risk regressing an already-verified-working app
-  (see AI_LEDGER.md entry #17 - a live call had just been confirmed
-  end-to-end on a physical device) for the spec's explicitly
-  lowest-priority stretch item.
-
 ## Implemented from the optional/bonus lists
+
+All four spec section 15 stretch items ended up implemented (see
+AI_LEDGER.md entry #19) - initially scoped out given the timebox, then
+picked back up on explicit request after the core assessment was already
+submitted, once there was time to spend on them without risking the
+verified-working core flows.
 
 - **Export session summary** (spec section 3.E bonus) - a share icon on
   the session-log detail sheet in both apps, using `share_plus` to hand a
   plain-text summary (`shared/lib/utils/session_summary.dart`) to the
   OS share sheet.
+- **Light/Dark theme toggle** - `ThemeCubit` (Hive-persisted `ThemeMode`)
+  + a toggle icon in both apps' AppBar. `AppTheme.buildDark` mirrors the
+  light theme using `ColorScheme.fromSeed(brightness: Brightness.dark)`,
+  and the most-reused shared widgets (`HomeActionCard`, `ChatBubble`,
+  `MessageInputBar`, the scheduler chips, `DevPanel`) plus each screen's
+  own card/list-tile containers were swept from hardcoded literal colors
+  to `Theme.of(context).colorScheme` lookups. The in-call screens
+  (`pre_join_screen.dart`, `in_call_screen.dart`) were deliberately left on
+  their fixed dark background regardless of app theme - video-call UIs are
+  conventionally always-dark (Zoom/Meet-style), not something a light/dark
+  toggle should affect.
+- **Offline send queue for chat** - `SyncClient.connectionChanges` (a new
+  broadcast stream firing on relay connect/disconnect) drives
+  `ChatService`: a message sent while offline is persisted with
+  `MessageStatus.sending` (shown as a clock icon) instead of `sent`, and
+  `_flushQueue()` re-dispatches every such message - including any image
+  attachment bytes, re-read from the locally-saved copy - the moment the
+  relay reconnects, in original send order.
+- **Image/file attachments in chat** - scoped to images only (not
+  arbitrary files). `image_picker` (downsized to maxWidth 1024 /
+  quality 70 before sending, since the relay is a plain-text WebSocket) →
+  `ChatService.sendImageMessage` saves a local copy via `path_provider`
+  and relays the bytes as a base64 sibling field alongside the normal
+  `chat_message` JSON payload (not part of `ChatMessage.toJson()` itself,
+  since a sender's local file path is meaningless on the receiver's
+  filesystem) → the receiving `ChatService.listen()` handler decodes and
+  saves its *own* local copy, then persists a `ChatMessage` pointing at
+  that. `ChatBubble` renders a thumbnail above the caption when
+  `attachmentPath` is set.
+- **Local scheduled push notifications** - `NotificationService`
+  (`flutter_local_notifications` + `timezone`) schedules a local
+  notification 10 minutes before `CallRequest.scheduledFor` the moment a
+  trainer approves a request (`CallService.approve`), and cancels it on
+  decline. Uses `AndroidScheduleMode.inexactAllowWhileIdle` deliberately -
+  exact alarms need `SCHEDULE_EXACT_ALARM`, a separately-user-granted
+  permission on Android 12+, which is disproportionate ceremony for a
+  "reminder," not a time-critical alarm. Each app schedules its own local
+  copy independently (best-effort, not synced) - a scheduling failure
+  never blocks the approval flow itself (wrapped in try/catch, logged not
+  thrown).

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../models/chat_message.dart';
@@ -14,26 +16,28 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     if (message.isSystem) {
       return Center(
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 8),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFFF2F4F7),
+            color: scheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             message.text,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF667085), fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant, fontWeight: FontWeight.w500),
             textAlign: TextAlign.center,
           ),
         ),
       );
     }
 
-    final bubbleColor = isMine ? ownColor : const Color(0xFFF2F4F7);
-    final textColor = isMine ? Colors.white : const Color(0xFF1D2939);
+    final bubbleColor = isMine ? ownColor : scheme.surfaceContainerHighest;
+    final textColor = isMine ? Colors.white : scheme.onSurface;
 
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
@@ -54,6 +58,27 @@ class ChatBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Attachments (spec section 15 stretch): thumbnail above the
+            // caption text when this message carries an image.
+            if (message.attachmentPath != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  File(message.attachmentPath!),
+                  width: 200,
+                  height: 200,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stack) => Container(
+                    width: 200,
+                    height: 200,
+                    color: scheme.surfaceContainerHighest,
+                    alignment: Alignment.center,
+                    child: Icon(Icons.broken_image_outlined, color: scheme.onSurfaceVariant),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
             Text(message.text, style: TextStyle(color: textColor, fontSize: 15)),
             const SizedBox(height: 4),
             Row(
@@ -66,7 +91,14 @@ class ChatBubble extends StatelessWidget {
                 if (isMine) ...[
                   const SizedBox(width: 4),
                   Icon(
-                    message.status == MessageStatus.read ? Icons.done_all : Icons.done,
+                    switch (message.status) {
+                      // Offline send queue (spec section 15 stretch): a
+                      // clock means it's written locally but hasn't reached
+                      // the relay yet - flips to a single check once sent.
+                      MessageStatus.sending => Icons.access_time,
+                      MessageStatus.sent => Icons.done,
+                      MessageStatus.read => Icons.done_all,
+                    },
                     size: 14,
                     color: message.status == MessageStatus.read ? Colors.lightBlueAccent : textColor.withValues(alpha: 0.7),
                   ),
@@ -97,7 +129,7 @@ class TypingIndicator extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(color: const Color(0xFFF2F4F7), borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
         child: const _TypingDots(),
       ),
     );
@@ -139,7 +171,7 @@ class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderState
                   child: Container(
                     width: 6,
                     height: 6,
-                    decoration: const BoxDecoration(color: Color(0xFF667085), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.onSurfaceVariant, shape: BoxShape.circle),
                   ),
                 ),
               );

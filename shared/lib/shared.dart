@@ -13,11 +13,13 @@ export 'services/log_service.dart';
 export 'services/call_config.dart';
 export 'services/call_manager.dart';
 export 'services/app_services.dart';
+export 'services/notification_service.dart';
 
 export 'blocs/auth_cubit.dart';
 export 'blocs/chat_cubit.dart';
 export 'blocs/call_cubit.dart';
 export 'blocs/session_log_cubit.dart';
+export 'blocs/theme_cubit.dart';
 
 export 'utils/seed_data.dart';
 export 'utils/app_logger.dart';

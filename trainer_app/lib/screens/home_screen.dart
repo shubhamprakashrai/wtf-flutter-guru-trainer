@@ -34,6 +34,13 @@ class _HomeScreenState extends State<HomeScreen> {
             RoleBadge(label: 'Trainer • ${me.name}', color: const Color(0xFFE50914)),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Toggle theme',
+            icon: Icon(Theme.of(context).brightness == Brightness.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+            onPressed: () => context.read<ThemeCubit>().toggle(),
+          ),
+        ],
       ),
       body: Stack(
         children: [

@@ -35,7 +35,7 @@ void _openDevPanel(BuildContext context, String appLabel, Map<String, String> bu
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.white,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
     builder: (_) => _DevPanelSheet(appLabel: appLabel, buildInfo: buildInfo),
   );

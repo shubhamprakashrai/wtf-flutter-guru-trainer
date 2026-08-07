@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared/shared.dart';
 
 import 'call/pre_join_screen.dart';
@@ -79,6 +80,16 @@ class _ConversationViewState extends State<_ConversationView> {
     ));
   }
 
+  Future<void> _attachPhoto() async {
+    // Downsized here (not full-res) since the image travels as base64 over
+    // a plain-text WebSocket relay - see ChatService.sendImageMessage.
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1024, imageQuality: 70);
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return;
+    await context.read<ChatCubit>().sendImage(bytes);
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -156,7 +167,11 @@ class _ConversationViewState extends State<_ConversationView> {
               },
             ),
           ),
-          MessageInputBar(onSend: (text) => context.read<ChatCubit>().send(text), quickReplies: _quickReplies),
+          MessageInputBar(
+            onSend: (text) => context.read<ChatCubit>().send(text),
+            quickReplies: _quickReplies,
+            onAttach: _attachPhoto,
+          ),
         ],
       ),
     );
