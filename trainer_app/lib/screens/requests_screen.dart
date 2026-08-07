@@ -159,10 +159,7 @@ class _RequestsView extends StatelessWidget {
     );
   }
 
-  bool _isJoinable(CallRequest r) {
-    if (r.status != CallRequestStatus.approved) return false;
-    return DateTime.now().isAfter(r.scheduledFor.subtract(const Duration(minutes: 10)));
-  }
+  bool _isJoinable(CallRequest r) => r.status == CallRequestStatus.approved;
 
   void _joinCall(BuildContext context, CallRequest r) {
     final room = context.read<CallCubit>().roomFor(r.id);

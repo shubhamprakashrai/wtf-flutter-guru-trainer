@@ -61,13 +61,10 @@ class _ConversationViewState extends State<_ConversationView> {
   }
 
   CallRequest? _joinableRequest(List<CallRequest> requests) {
-    final now = DateTime.now();
     CallRequest? joinable;
     for (final r in requests) {
       if (r.status != CallRequestStatus.approved) continue;
-      if (now.isAfter(r.scheduledFor.subtract(const Duration(minutes: 10)))) {
-        joinable = r;
-      }
+      joinable = r;
     }
     return joinable;
   }

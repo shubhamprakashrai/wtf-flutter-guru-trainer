@@ -143,3 +143,18 @@ verified-working core flows.
   copy independently (best-effort, not synced) - a scheduling failure
   never blocks the approval flow itself (wrapped in try/catch, logged not
   thrown).
+
+## Known deviation from spec: Join Call no longer gated to a 10-minute window
+
+Spec section D says "10 minutes before scheduled time, both see Join Call
+button." The original implementation enforced exactly that
+(`now.isAfter(scheduledFor - 10min)`) and was verified working - the first
+successful end-to-end LiveKit call in this build happened through that
+gate. At explicit candidate request, `_isJoinable` in both apps'
+`scheduler_screen.dart`/`requests_screen.dart`/`conversation_screen.dart`
+was simplified to just `status == approved`, so Join Call is available
+immediately on approval regardless of how far out `scheduledFor` is - to
+make live demo recording practical without waiting out real 10-minute
+windows between takes. The time-gated version is a one-line revert per
+call site if strict spec compliance on this point matters more than demo
+convenience.
